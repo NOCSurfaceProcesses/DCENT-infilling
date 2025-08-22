@@ -39,11 +39,15 @@ Only unmasked data-complete (has values for all time-points) grid-boxes are used
 of ellipse parameters and interpolation covariance matrix, using the `ellipse` module from
 [GloMarGridding](https://pypi.org/project/glomar_gridding/) for LSAT.
 
+---
+
 ### Infilling
 
 - DCENT version 2.0 SST and LSAT ensemble members can be obtained from: [Harvard
   Dataverse](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/NU4UGW).
 - DCENT Error Covariances available on request.
+
+---
 
 ### Blending
 
