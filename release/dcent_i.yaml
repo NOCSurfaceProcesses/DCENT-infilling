@@ -1,0 +1,67 @@
+setup:
+  input_glob: "input_folder/*.nc"
+  nbatch: 60
+
+general:
+  name: DCENT_I
+  version: 1.0.0.0
+  title: "An infilled version of DCENT: Dynamically Consistent ENsemble of Temperature at the earth surface"
+  institution: "University of Southampton / National Oceanography Centre"
+  source: "DCENT Version 2.0"
+  comment: |-
+    Temperature is expressed as monthly anomalies relative to 1982-2014 climatology.
+    Values represent air temperature anomalies over land and Sea Surface Temperatsure over the Ocean
+    Created using GloMarGridding v1.0.0-rc.2: https://github.com/NOCSurfaceProcesses/GloMarGridding
+  Conventions: "CF-1.7"
+
+variable:
+  name: tas
+  old_name: "combined_perturbed"
+  attributes:
+    units: "C"
+    standard_name: "air_temperature"
+    long_name: "Near-surface air temperature"
+
+coordinates:
+  time:
+    units: "days since 1850-01-01"
+    calendar: "standard"
+    standard_name: "time"
+    long_name: "time"
+    axis: "T"
+  lat:
+    axis: "Y"
+    standard_name: "latitude"
+    long_name: "latitude"
+    units: "degrees_north"
+  lon:
+    axis: "X"
+    standard_name: "longitude"
+    long_name: "longitude"
+    units: "degrees_east"
+
+aux:
+
+  weights_path: "/path/to/land_sic_wgts.nc"
+
+  sst_alpha:
+    units: "1"
+    long_name: "Local kriging variance in SST as a proportion of the the prior variance"
+
+  lsat_alpha:
+    units: "1"
+    long_name: "Local kriging variance in LSAT as a proportion of the the prior variance"
+
+  sst_n_obs:
+    units: "1"
+    long_name: "Binary mask to indicate the marine domain"
+    new_name: "sea_mask"
+
+  lsat_n_obs:
+    units: "1"
+    long_name: "Binary mask to indicate the land domain"
+    new_name: "land_mask"
+
+  weight:
+    units: "1"
+    long_name: "land/sea weight"

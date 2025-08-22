@@ -1,0 +1,55 @@
+[project]
+name = "dcent-gridding"
+version = "0.1.0"
+description = "Scripts for In-filling the DCENT dataset"
+authors = [
+  { name = "Agnieszka Faulkner", email = "agfaul@noc.ac.uk" },
+  { name = "Richard Cornes", email = "rcornes@noc.ac.uk" },
+  { name = "Steven Chan", email = "stchan@noc.ac.uk" },
+  { name = "Joseph Siddons", email = "josidd@noc.ac.uk" },
+  { name = "Duo Chan", email = "duo.chan@soton.ac.uk" },
+]
+maintainers = [
+  { name = "Agnieszka Faulkner", email = "agfaul@noc.ac.uk" },
+  { name = "Steven Chan", email = "stchan@noc.ac.uk" },
+  { name = "Joseph Siddons", email = "josidd@noc.ac.uk" },
+]
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "glomar_gridding",
+  "numpy>=2.2.5",
+  "polars>=1.28.1",
+  "pyyaml>=6.0.2",
+  "xarray>=2025.3.1",
+]
+
+[tool.ruff]
+line-length = 88
+indent-width = 4
+target-version = "py311"
+exclude = [".eggs", ".git", ".venv", "build", "venv"]
+
+[tool.ruff.lint]
+ignore = [
+  "D105", # missing docstring in magic method
+  "D205", # blank-line-after-summary
+  "D212", # Multi-line docstring summary should start at first line
+  "D400", # ends-in-period
+  "D401", # non-imperative-mood
+]
+preview = true
+select = [
+  "D",    # docstrings
+  "E",    # pycodestyle errors
+  "F",    # pyflakes
+  "N802", # invalid-function-name
+  "S",    # bandit
+  "W",    # pycodestyle warnings
+]
+
+[tool.ruff.format]
+quote-style = "double"            # Like Black, use double quotes for strings.
+indent-style = "space"            # Like Black, indent with spaces, rather than tabs.
+skip-magic-trailing-comma = false # Like Black, respect magic trailing commas.
+line-ending = "auto"              # Like Black, automatically detect the appropriate line ending.

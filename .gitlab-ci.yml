@@ -1,0 +1,11 @@
+stages:
+  - precommit
+pre-commit:
+  stage: precommit
+  image: python:3.11
+  script:
+    - pip install pre-commit
+    - pre-commit run --all-files
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main" && $CI_PROJECT_NAMESPACE == "nocsurfaceprocesses"

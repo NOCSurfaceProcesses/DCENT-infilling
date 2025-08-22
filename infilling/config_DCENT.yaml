@@ -1,0 +1,34 @@
+# config file for main_DCENT.py
+
+domain:
+  west: !!float 0.
+  east: !!float 360.
+  south: !!float -90.
+  north: !!float 90.
+
+  startyear: !!int 1850
+  endyear: !!int 2024
+
+  startmember: !!int 1
+  endmember: !!int 200
+
+  # variable: "sst"
+  variable: "lsat"
+
+sst:
+  observations_path: "/path/to/DCENT_ensemble_reso_5_1850_2024_member_{member:03d}.nc"
+  interpolation_covariance_path: "/path/to/covariance_{month:02d}_v_eq_1p5_{variable}_clipped_0_360.nc"
+
+  error_covariance_path: "/path/to/Error_Cov_Mat_5_{year}_{month:02d}.nc"
+
+lsat:
+  observations_path: "/path/to/DCENT_ensemble_reso_5_1850_2024_member_{member:03d}.nc"
+  interpolation_covariance_path: "/path/to/covariance_{month:02d}_v_eq_1p5_{variable}_clipped_0_360.nc"
+
+  error_covariance_path: "/path/to/DCENT_en_{member}_LSAT_Uncertainty_reso_5.nc"
+
+output:
+  path: "/path/to/2024"
+
+setup:
+  log_file: "/path/to/lsat_2025-06.log"
