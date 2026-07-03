@@ -197,7 +197,7 @@ def main():  # noqa: D103
     if VERBOSE:
         print(f"{sic.coords = }")
 
-    years = sic.coords["time"].dt.year
+    years = sic.coords[time_name].dt.year
     sic = sic.sel({time_name: ((START_YEAR <= years) & (years <= END_YEAR))})
 
     terrain = xr.open_dataset(TERRAIN_FILE)
