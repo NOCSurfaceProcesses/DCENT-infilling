@@ -191,7 +191,8 @@ def main():  # noqa: D103
     if any(sic[lon_name] > 180.0):
         # Convert 0 - 360 to -180 - 180
         sic.coords[lon_name] = ((sic.coords[lon_name] + 180) % 360) - 180
-        sic = sic.sortby(lat_name).sortby(lon_name)
+
+    sic = sic.sortby(lat_name).sortby(lon_name)
 
     if VERBOSE:
         print(f"{sic.coords = }")
