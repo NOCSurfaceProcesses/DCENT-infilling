@@ -19,6 +19,7 @@ that can be converted to a DataFrame. There is an associated attr
 import os
 
 from itertools import product
+from pathlib import Path
 from typing import Any
 
 import polars as pl
@@ -28,7 +29,6 @@ from polars.datatypes.classes import DataTypeClass
 
 
 from glomar_gridding.grid import grid_from_resolution, map_to_grid
-from glomar_gridding.io import load_array
 
 
 BASE_PATH: str = "/path/to/sst"
@@ -40,12 +40,17 @@ OUT_PATH: str = os.path.join(OUT_DIR, "Error_Cov_Mat_5_{year}_{month:02d}.nc")
 YEARS: tuple[int, int] = (1850, 2024)
 MONTHS: list[int] = list(range(1, 13))
 
+OVERWRITE: bool = False
 
-def _create_grid() -> tuple[xr.DataArray, pl.DataFrame, pl.DataFrame]:
+
+def _create_grid(
+    resolution: int = 5,
+) -> tuple[xr.DataArray, pl.DataFrame, pl.DataFrame]:
     grid = grid_from_resolution(
-        resolution=5,
-        bounds=[(-87.5, 90), (2.5, 360)],
+        resolution=resolution,
+        bounds=[(-90, 90), (0, 360)],
         coord_names=["latitude", "longitude"],
+        definition="left",
     )
     lats: np.ndarray = grid["latitude"].values
     lons: np.ndarray = grid["longitude"].values
@@ -54,14 +59,17 @@ def _create_grid() -> tuple[xr.DataArray, pl.DataFrame, pl.DataFrame]:
     return grid, lat_df, lon_df
 
 
-def _load_file(
-    year: int, month: int
+def load_table(
+    file: str | Path,
 ) -> tuple[pl.DataFrame | None, xr.DataArray | None]:
-    file = PATH.format(year=year, month=month)
-    if not os.path.isfile(file):
-        print(f"    File: {file} not found. Skipping.")
+    """Load the error covariance table and variance from a file."""
+    file = Path(file)
+    if not file.is_file():
+        print(f"File {file} not found.")
         return None, None
-    cov_table: np.ndarray = load_array(file, "cov").values
+
+    ds = xr.open_dataset(file)
+    cov_table: np.ndarray = ds["cov"].values
     schema: list[tuple[str, DataTypeClass]] = [
         ("row_idx", pl.UInt16),
         ("col_idx", pl.UInt16),
@@ -76,8 +84,18 @@ def _load_file(
         orient="col",
         schema=schema,
     )
-    sigma2 = load_array(file, "sigma2")
+    sigma2 = ds["sigma2"].compute()
     return cov_frame, sigma2
+
+
+def _load_file(
+    year: int,
+    month: int,
+    file_path: str | None = None,
+) -> tuple[pl.DataFrame | None, xr.DataArray | None]:
+    file_path = file_path or PATH
+    file = file_path.format(year=year, month=month)
+    return load_table(file)
 
 
 def _add_grid_pos(
@@ -122,14 +140,14 @@ def _add_grid_idx(
     grid: xr.DataArray,
 ) -> pl.DataFrame:
     # Align to the grid
-    cov_frame = cov_frame.pipe(
-        map_to_grid,
+    cov_frame = map_to_grid(
+        cov_frame,
         grid=grid,
         obs_coords=["row_lat", "row_lon"],
         grid_coords=["latitude", "longitude"],
     ).rename({"grid_idx": "row_grid_idx"})
-    cov_frame = cov_frame.pipe(
-        map_to_grid,
+    cov_frame = map_to_grid(
+        cov_frame,
         grid=grid,
         obs_coords=["col_lat", "col_lon"],
         grid_coords=["latitude", "longitude"],
@@ -159,6 +177,67 @@ def _output_coords(n, grid: xr.DataArray) -> xr.Coordinates:
     return xr.Coordinates(out_coords)
 
 
+def process_error_table(
+    in_file: str | Path,
+    resolution: int = 5,
+) -> xr.DataArray:
+    """Process a single error covariance table from a file."""
+    cov_frame, sigma2 = load_table(in_file)
+    if cov_frame is None or sigma2 is None:
+        raise FileNotFoundError(f"Could not find or open {in_file}")
+    grid, lat_df, lon_df = _create_grid(resolution=resolution)
+    n = int(np.prod(grid.shape))
+    out_coords = _output_coords(n, grid)
+    return _process_table(
+        cov_frame=cov_frame,
+        sigma2=sigma2,
+        grid=grid,
+        lat_df=lat_df,
+        lon_df=lon_df,
+        out_coords=out_coords,
+        n=n,
+    )
+
+
+def _process_table(
+    cov_frame: pl.DataFrame,
+    sigma2: xr.DataArray,
+    grid: xr.DataArray,
+    lat_df: pl.DataFrame,
+    lon_df: pl.DataFrame,
+    out_coords: xr.Coordinates,
+    n: int,
+) -> xr.DataArray:
+    if sigma2.shape != grid.shape:
+        sigma2 = sigma2.transpose()
+    if sigma2.shape != grid.shape:
+        raise ValueError(
+            f"Could not align sigma2 to grid. {grid.shape = }, {sigma2.shape = }."
+        )
+
+    cov_frame = _add_grid_pos(
+        cov_frame,
+        lat_df=lat_df,
+        lon_df=lon_df,
+    )
+
+    cov_frame = _add_grid_idx(
+        cov_frame,
+        grid=grid,
+    )
+
+    cov_mat: np.ndarray = _get_cov_mat(cov_frame, n=n)
+
+    # Acts in-place
+    np.fill_diagonal(cov_mat, sigma2.values.flatten())
+    da = xr.DataArray(
+        name="error_covariance",
+        data=cov_mat.astype(np.float32),
+        coords=out_coords,
+    )
+    return da
+
+
 def main() -> None:  # noqa: D103
     grid, lat_df, lon_df = _create_grid()
     n = int(np.prod(grid.shape))
@@ -169,34 +248,25 @@ def main() -> None:  # noqa: D103
     for i, (year, month) in enumerate(product(years, MONTHS)):
         out_file = OUT_PATH.format(year=year, month=month)
         print(f"Doing {year}-{month:02d} | {i / n_files:.2%}")
-        # if os.path.isfile(out_file):
-        #     print(f"    Output file: {out_file} already exists. Skipping.")
-        #     # Done already
-        #     continue
+        if os.path.isfile(out_file) and not OVERWRITE:
+            print(f"Output file: {out_file} already exists. Skipping.")
+            # Done already
+            continue
         cov_frame, sigma2 = _load_file(year, month)
         if cov_frame is None or sigma2 is None:
             continue
-        cov_frame = cov_frame.pipe(
-            _add_grid_pos,
+        da = _process_table(
+            cov_frame=cov_frame,
+            sigma2=sigma2,
+            grid=grid,
             lat_df=lat_df,
             lon_df=lon_df,
-        )
-        cov_frame = cov_frame.pipe(
-            _add_grid_idx,
-            grid=grid,
-        )
-        cov_mat: np.ndarray = _get_cov_mat(cov_frame, n=n)
-        if sigma2.shape != grid.shape:
-            sigma2 = sigma2.transpose()
-        np.fill_diagonal(cov_mat, sigma2.values.flatten())
-        da = xr.DataArray(
-            name="error_covariance",
-            data=cov_mat.astype(np.float32),
-            coords=out_coords,
+            out_coords=out_coords,
+            n=n,
         )
         da.to_netcdf(out_file)
 
-        del da, cov_mat, cov_frame, sigma2
+        del da, cov_frame, sigma2
 
     return None
 
