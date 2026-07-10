@@ -84,7 +84,7 @@ def add_year(da: xr.DataArray) -> xr.DataArray:
 
 def main() -> NoneType:  # noqa: D103
     if not IN_FILE.is_file():
-        raise FileNotFoundError(f"HadISS2 file {IN_FILE} not found.")
+        raise FileNotFoundError(f"HadISST2 file {IN_FILE} not found.")
 
     # Load Sea-Ice concentration file
     sic = xr.open_dataset(IN_FILE)[VAR_NAME]
