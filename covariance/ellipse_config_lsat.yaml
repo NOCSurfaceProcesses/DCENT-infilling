@@ -1,0 +1,58 @@
+variable: "lsat"
+
+io:
+  base_path: "/path/to/ERA5_SURFTEMP_500deg_monthly/ANOMALY/"
+  train_file: "era5_t2m_monthly_mean_1979_2023_5x5_new_sea_mask_v1.nc" # Operational
+  # train_file: "era5_t2m_monthly_mean_1979_2023_5x5_new_sea_mask_v3.nc" # Latest
+  train_var: "var_2_metre_air_temperature"
+  #
+  # Used in DCENT Infilled first version/paper version
+  # - This is the operational version
+  ellipse_file: "SpatialScales_v1/matern_physical_distances_v_eq_1p5/lsat_{mm:02}.nc"
+  cov_180_file: "SpatialScales_v1/locally_build_covariances/covariance_{mm:02}_v_eq_1p5_lsat_clipped_-180_180.nc"
+  cov_360_file: "SpatialScales_v1/locally_build_covariances/covariance_{mm:02}_v_eq_1p5_lsat_clipped_0_360.nc"
+  idx_180_file: "SpatialScales_v1/locally_build_covariances/row_lookup_{mm:02}_v_eq_1p5_lsat_clipped_-180_180.csv"
+  #
+  # Latest:
+  # - Training data upscaling of temperature now uses ESMF conservative norm (also uses in latest MAT/NMAT)
+  #   - this is the only regridding method that works well with masked pixels but a change between bilinear-conservative will always
+  #     changes the values somewhat
+  # - Training data uses a different land-sea mask file
+  #   - land_lowres_kernel (esa cci wb-based) >> and_lowres_kernel_esa_hybrid (esa cci sst 0.05 mask + esa_arc_lake GL/Caspian only))
+  #   - This doesn't technically affect anything; for the purpose of LSAT kernel estimation, it only checks if land_frac > 0.01
+  #   - The two files main differences are that many inland lake pixels would now becomes 1.0
+  # ellipse_file: "SpatialScales_v3/matern_physical_distances_v_eq_1p5/lsat_{mm:02}.nc"
+  # cov_180_file: "SpatialScales_v3/locally_build_covariances/covariance_{mm:02}_v_eq_1p5_lsat_clipped_-180_180.nc"
+  # cov_360_file: "SpatialScales_v3/locally_build_covariances/covariance_{mm:02}_v_eq_1p5_lsat_clipped_0_360.nc"
+  # idx_180_file: "SpatialScales_v3/locally_build_covariances/row_lookup_{mm:02}_v_eq_1p5_lsat_clipped_-180_180.csv"
+
+fit_params:
+  init_value_Lx: 2000.0 # Default: 2000
+  init_value_Ly: 2000.0 # Default: 2000
+  init_value_theta: 0.0 # Default: 0.0
+  Lx_lower_bound: 300.0 # Default: 300.0
+  Lx_upper_bound: 30000.0 # Default: 30000.0
+  Ly_lower_bound: 300.0 # Default: 300.0
+  Ly_upper_bound: 30000.0 # Default: 30000.0
+  fit_max_distance: 6667.2 # Default 10000.0
+  HadCRUT5_defaults: false # Default: False
+
+model_params:
+  anisotropic: true # Default: True
+  rotated: true # Default: True
+  physical_distance: true # Default: True
+  v: 1.5
+  unit_sigma: true # Default: True
+
+cov:
+  max_dist: 1.5E+8 # Default: 6000
+  max_allowed_lx: 29995.0 # If Lx > this value; set Lx to Ly (Unknown if this is a problem)
+  fill_before_clipping: False # Default: True
+  off_diag_fill_value: 0.0 # Default: np.nan
+  eigenvalue_clip_method: "explained_variance" # Default: explained_variance
+  clip_params:
+    explained_variance:
+      target_variance_fraction: 0.95
+    laloux_clip:
+      # num_grid_pts: 2592,
+      num_time_pts: 40,
