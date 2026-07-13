@@ -1,21 +1,17 @@
 variable: "sst"
 
 io:
-  base_path: "/path/to/ESA_CCI5deg_month_extra/ANOMALY/"
   # Both files have an additional masking of excluding 5x5 grid boxes sic >= 15%
-  train_file: "esa_cci_sst_5deg_monthly_1982_2022.nc" # The original training file, 2022 had SIC exclusion 100%
-  # train_file: "esa_cci_sst_5deg_monthly_1982_2022_updated.nc" # Updated on 23 July 2025, 2022 SIC exclusion 100% changed to 15%, all other unaffected
+  train_file: "/path/to/esa_cci_sst_5deg_monthly_1982_2022.nc" # The original training file, 2022 had SIC exclusion 100%
+  # train_file: "/path/to/esa_cci_sst_5deg_monthly_1982_2022_updated.nc" # Updated on 23 July 2025, 2022 SIC exclusion 100% changed to 15%, all other unaffected
   train_var: "sst_anomaly"
+
+  # Paths for outputs
   # Below are used to produce the original DCENT analysis
-  ellipse_file: "SpatialScales_v1/matern_physical_distances_v_eq_1p5/sst_{mm:02}.nc"
-  cov_180_file: "SpatialScales_v1/locally_build_covariances/covariance_{mm:02}_v_eq_1p5_sst_clipped_-180_180.nc"
-  cov_360_file: "SpatialScales_v1/locally_build_covariances/covariance_{mm:02}_v_eq_1p5_sst_clipped_0_360.nc"
-  idx_180_file: "SpatialScales_v1/locally_build_covariances/row_lookup_{mm:02}_v_eq_1p5_sst_clipped_-180_180.csv"
-  # Updated covariance with fully consistent ESA CCI SST files
-  # ellipse_file: "SpatialScales_v2/matern_physical_distances_v_eq_1p5/sst_{month:02}.nc"
-  # cov_180_file: "SpatialScales_v2/locally_build_covariances/covariance_{month:02}_v_eq_1p5_sst_clipped_-180_180.nc"
-  # cov_360_file: "SpatialScales_v2/locally_build_covariances/covariance_{month:02}_v_eq_1p5_sst_clipped_0_360.nc"
-  # idx_180_file: "SpatialScales_v2/locally_build_covariances/row_lookup_{month:02}_v_eq_1p5_sst_clipped_-180_180.csv"
+  base_path: "/path/to/Covariances/SST"
+  ellipse_file: "matern_physical_distances_v_eq_1p5/sst_{mm:02}.nc"
+  cov_180_file: "locally_build_covariances/covariance_{mm:02}_v_eq_1p5_sst_clipped_-180_180.nc"
+  cov_360_file: "locally_build_covariances/covariance_{mm:02}_v_eq_1p5_sst_clipped_0_360.nc"
 
 fit_params:
   init_value_Lx: 2000.0 # Default: 2000

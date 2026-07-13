@@ -1,18 +1,7 @@
 variable: "lsat"
 
 io:
-  base_path: "/path/to/ERA5_SURFTEMP_500deg_monthly/ANOMALY/"
-  train_file: "era5_t2m_monthly_mean_1979_2023_5x5_new_sea_mask_v1.nc" # Operational
-  # train_file: "era5_t2m_monthly_mean_1979_2023_5x5_new_sea_mask_v3.nc" # Latest
-  train_var: "var_2_metre_air_temperature"
-  #
-  # Used in DCENT Infilled first version/paper version
-  # - This is the operational version
-  ellipse_file: "SpatialScales_v1/matern_physical_distances_v_eq_1p5/lsat_{mm:02}.nc"
-  cov_180_file: "SpatialScales_v1/locally_build_covariances/covariance_{mm:02}_v_eq_1p5_lsat_clipped_-180_180.nc"
-  cov_360_file: "SpatialScales_v1/locally_build_covariances/covariance_{mm:02}_v_eq_1p5_lsat_clipped_0_360.nc"
-  idx_180_file: "SpatialScales_v1/locally_build_covariances/row_lookup_{mm:02}_v_eq_1p5_lsat_clipped_-180_180.csv"
-  #
+  train_file: "/path/to/era5_t2m_monthly_mean_1979_2023_5x5_new_sea_mask_v1.nc" # Operational
   # Latest:
   # - Training data upscaling of temperature now uses ESMF conservative norm (also uses in latest MAT/NMAT)
   #   - this is the only regridding method that works well with masked pixels but a change between bilinear-conservative will always
@@ -21,10 +10,15 @@ io:
   #   - land_lowres_kernel (esa cci wb-based) >> and_lowres_kernel_esa_hybrid (esa cci sst 0.05 mask + esa_arc_lake GL/Caspian only))
   #   - This doesn't technically affect anything; for the purpose of LSAT kernel estimation, it only checks if land_frac > 0.01
   #   - The two files main differences are that many inland lake pixels would now becomes 1.0
-  # ellipse_file: "SpatialScales_v3/matern_physical_distances_v_eq_1p5/lsat_{mm:02}.nc"
-  # cov_180_file: "SpatialScales_v3/locally_build_covariances/covariance_{mm:02}_v_eq_1p5_lsat_clipped_-180_180.nc"
-  # cov_360_file: "SpatialScales_v3/locally_build_covariances/covariance_{mm:02}_v_eq_1p5_lsat_clipped_0_360.nc"
-  # idx_180_file: "SpatialScales_v3/locally_build_covariances/row_lookup_{mm:02}_v_eq_1p5_lsat_clipped_-180_180.csv"
+  # train_file: "/path/to/era5_t2m_monthly_mean_1979_2023_5x5_new_sea_mask_v3.nc" # Latest
+  train_var: "var_2_metre_air_temperature"
+  #
+  # Used in DCENT Infilled first version/paper version
+  # - This is the operational version
+  base_path: "/path/to/Covariances/LSAT"
+  ellipse_file: "matern_physical_distances_v_eq_1p5/lsat_{mm:02}.nc"
+  cov_180_file: "locally_build_covariances/covariance_{mm:02}_v_eq_1p5_lsat_clipped_-180_180.nc"
+  cov_360_file: "locally_build_covariances/covariance_{mm:02}_v_eq_1p5_lsat_clipped_0_360.nc"
 
 fit_params:
   init_value_Lx: 2000.0 # Default: 2000
