@@ -1,0 +1,32 @@
+land_mask:
+  sst_input_file: "/path/to/esa_cci_sst_file.nc"
+  lake_file: "/path/to/ESA_ArcLake.nc"
+  # Feather file containing mapping of `lakeid` to name of Lake
+  lake_id_file: "/path/to/lake_mapping.feather"
+  output_file: "/path/to/land-mask-output.nc"
+  # Can be a single integer or a list of 2 integers
+  target_resolution: 5
+  # target_resolution: [5, 5]
+  lakes_to_keep:
+    - "CASPIAN"
+    - "SUPERIOR"
+    - "MICHIGAN"
+    - "HURON"
+    - "ERIE"
+    - "ONTARIO"
+
+extend_ice_mask:
+  ice_concentration_file: "/path/to/HadISST.2.2.2.0_sea_ice_concentration.nc"
+  output_file: "path/to/HadISST.2.2.2.0_sea_ice_concentration_extended.nc"
+  # Extend the file to the end of this year
+  target_year: 2025
+  var_name: "sic"
+  time_name: "time"
+
+reduce_ice_mask:
+  ice_concentration_file: "/path/to/HadISST.2.2.2.0_sea_ice_concentration_extended.nc"
+  terrain_file: "/path/to/land-mask-output.nc"
+  output_file: "/path/to/lower_resolution_sea_ice_concentration.nc"
+  var_name: "sic"
+  start_year: 1850
+  end_year: 2025

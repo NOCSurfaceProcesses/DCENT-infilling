@@ -1,5 +1,9 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
-name = "dcent-gridding"
+name = "dcent_infilling"
 version = "0.1.0"
 description = "Scripts for In-filling the DCENT dataset"
 authors = [
@@ -57,6 +61,7 @@ skip-magic-trailing-comma = false # Like Black, respect magic trailing commas.
 line-ending = "auto"              # Like Black, automatically detect the appropriate line ending.
 
 [dependency-groups]
-dev = [
-    "bpython>=0.25",
-]
+dev = ["bpython>=0.25"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["blending", "infilling", "pre-processing", "release", "land-ice-mask", "dcent_infilling"]

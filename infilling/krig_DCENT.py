@@ -40,7 +40,7 @@ from glomar_gridding.grid import (
     grid_from_resolution,
 )
 from glomar_gridding.io import load_dataset, load_array, get_recurse
-from glomar_gridding.stochastic import StochasticKriging, scipy_mv_normal_draw
+from glomar_gridding.stochastic import StochasticKriging, draw_from_cov
 from glomar_gridding.utils import (
     init_logging,
     get_date_index,
@@ -61,6 +61,15 @@ parser.add_argument(
     default=os.path.join(os.path.dirname(__file__), "config_DCENT.yaml"),
     help="Path to yaml file containing configuration settings",
     type=str,
+)
+parser.add_argument(
+    "-v",
+    "--variable",
+    dest="variable",
+    help="Variable to process, one of 'sst', 'lsat'",
+    choices=["sst", "lsat"],
+    required=False,
+    type="str",
 )
 
 
@@ -96,12 +105,14 @@ def _save_state(
 
 def _parse_args(
     parser,
-) -> dict:
+) -> tuple[str | None, dict]:
     args = parser.parse_args()
     with open(args.config, "r") as io:
         config: dict = yaml.safe_load(io)
 
-    return config
+    variable = args.variable
+
+    return variable, config
 
 
 def _get_sst_error_cov(
@@ -260,7 +271,7 @@ def _initialise_xarray(
         name="n_obs",
         attrs={
             "standard_name": "Number of observations in each gridcell",
-            "units": "",
+            "units": "1",
         },
     )
 
@@ -333,7 +344,7 @@ def _initialise_xarray(
 
 
 def main():  # noqa: C901, D103
-    config = _parse_args(parser)
+    variable, config = _parse_args(parser)
 
     config["summary"] = {}
     config["summary"]["start"] = str(datetime.today())
@@ -381,7 +392,7 @@ def main():  # noqa: C901, D103
     logging.info(f"{output_lon = }")
 
     # what variable is being processed
-    variable: str = get_recurse(config, "domain", "variable", default="sst")
+    variable = variable or get_recurse(config, "domain", "variable", default="sst")
 
     # path to output directory
     interpolation_covariance_type: str = "ellipse"
@@ -493,7 +504,7 @@ def main():  # noqa: C901, D103
             print(f"{interp_covariance = }")
             logging.info("Loaded ellipse interpolation covariance")
 
-            simulated_states = scipy_mv_normal_draw(
+            simulated_states = draw_from_cov(
                 np.zeros(interp_covariance.shape[0]),
                 interp_covariance,
                 ndraws=len(years),

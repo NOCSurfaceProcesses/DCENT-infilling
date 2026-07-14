@@ -6,6 +6,9 @@ Open (and resolved) questions:
     - Lake uses ESA ArcLake, otherwise unknown
 - ESA CCI SST uses ESA CCI Land Cover without lakes
 
+The land-sea component is formed from an ESA CCI SST instance, utilising the
+mask field (which is a bitmask, the 2nd bit indicating if the pixel represents land).
+
 Steps:
 
 1. Load Terrain NetCDF file
@@ -17,10 +20,14 @@ Steps:
     - 'HURON'
     - 'ERIE'
     - 'ONTARIO'
-4.
+4. Exclude all other lakes
+5. Extract land from the SST dataset
+6. Join lake array and terrain array
+7. Convolve to lower-resolution
 
 """
 
+import argparse
 from datetime import datetime
 from pathlib import Path
 from types import NoneType
@@ -31,35 +38,69 @@ import numpy as np
 import polars as pl
 import cf_xarray  # pylint: disable=unused-import  # noqa: F401
 import xarray as xr
+import yaml
 
-from .utils import get_coordnames, convolution_wgts, process_da
+from dcent_infilling.utils import get_coordnames, convolution_wgts, process_da
 
 
-TARGET_RESOLUTION: int | tuple[int, int] = 5
-LAND_MASK_FILE: Path = Path()
-LAKE_FILE: Path = Path()
-LAKE_ID_FILE: Path = Path()
-LAKES_TO_KEEP: list[str] = [
-    "CASPIAN",
-    "SUPERIOR",
-    "MICHIGAN",
-    "HURON",
-    "ERIE",
-    "ONTARIO",
-]
-OUT_FILE: Path = Path()
+config_help = """Configuration YAML file to use. With 'land_mask' section with:
+- sst_input_file : path to a high-resolution ESA-CCI SST frame as a netcdf file
+  with a 'mask' array.
+- lake_file : path to the ESA ArcLake NetCDF file - expected to be the same
+  resolution as the sst_input_file.
+- lake_id_file : path to a feather file containing a mapping between "Lake ID"
+  and "Lake Name" referencing the "lakeid" array in the lake_file.
+- output_file : path to the output file. Parent directories will be created as
+  needed.
+- target_resolution : integer or list of 2 integers indicating the lat and lon
+  resolutions. If an integer then the resolution is the same in both directions.
+- lakes_to_keep : list of lake names to keep.
+"""
+
+
+parser = argparse.ArgumentParser(description="Generate a combined land-lake-sea mask")
+parser.add_argument(
+    "-c",
+    "--config",
+    dest="config",
+    required=True,
+    type=str,
+    help=config_help,
+)
+parser.add_argument(
+    "-v",
+    "--verbose",
+    dest="verbose",
+    required=False,
+    action="store_true",
+    help="Print more debugging output",
+)
 
 
 def standarise_array_coords(
     da: xr.DataArray,
     units: str = "1",
-    lat_rev: bool = True,
 ) -> xr.DataArray:
     """Make xarray dataarray."""
-    lats = np.arange(-89.975, 89.975 + 0.0001, 0.05).astype(np.float32)
-    lons = np.arange(-179.975, 179.975 + 0.001, 0.05).astype(np.float32)
+    lat_name, lon_name = get_coordnames(da)
+    lat_resolution_actual = da.coords[lat_name][1] - da.coords[lat_name][0]
+    lat_resolution = abs(lat_resolution_actual)
+    lon_resolution = abs(da.coords[lon_name][1] - da.coords[lon_name][0])
 
-    if lat_rev:
+    lats = np.arange(
+        -90.0 + lat_resolution / 2,
+        90.0,
+        lat_resolution,
+        dtype=np.float32,
+    )
+    lons = np.arange(
+        -180 + lon_resolution / 2,
+        180.0,
+        lon_resolution,
+        dtype=np.float32,
+    )
+
+    if lat_resolution_actual < 0:
         lats = lats[::-1]
 
     new_da = xr.DataArray(
@@ -133,7 +174,7 @@ def process_mask(
     # Mask is a bitmask, the 2nd bit indicates 'land' (result is True is land)
     land_da.values = (np.bitwise_and(land_da.values, 2) == 2).astype(np.uint8)
     land_da.name = "mask"
-    land_da = standarise_array_coords(land_da, lat_rev=False)
+    land_da = standarise_array_coords(land_da)
     land_da.values = np.where(lake_da.values == 1, 0, land_da.values)
     return land_da
 
@@ -198,31 +239,35 @@ def get_target_grid(
     )
 
 
-def get_final_land_mask():
+def get_final_land_mask(
+    config: dict,
+    verbose: bool,
+):
     """Get the final land mask."""
     land_mask = process_mask(
-        land_mask_file=LAND_MASK_FILE,
-        lake_file=LAKE_FILE,
-        lake_id_file=LAKE_ID_FILE,
-        lakes_to_keep=LAKES_TO_KEEP,
+        land_mask_file=config["sst_input_file"],
+        lake_file=config["lake_file"],
+        lake_id_file=config["lake_id_file"],
+        lakes_to_keep=config.get("lakes_to_keep", []),
     )
 
+    target_resolution = config.get("target_resolution", 5)
     # Check valid target resolution
-    if isinstance(TARGET_RESOLUTION, (int, float)):
-        target_resolution = [TARGET_RESOLUTION, TARGET_RESOLUTION]
+    if isinstance(target_resolution, (int, float)):
+        target_resolution = [target_resolution, target_resolution]
     elif (
-        isinstance(TARGET_RESOLUTION, (tuple, list))
-        and len(TARGET_RESOLUTION) == 2
-        and all(isinstance(x, (int, float)) for x in TARGET_RESOLUTION)
+        isinstance(target_resolution, (tuple, list))
+        and len(target_resolution) == 2
+        and all(isinstance(x, (int, float)) for x in target_resolution)
     ):
-        target_resolution = list(TARGET_RESOLUTION)
+        target_resolution = list(target_resolution)
     else:
         raise ValueError(
             "TARGET_RESOLUTION must be numeric, or a tuple of two numeric values. "
-            + f"Got {TARGET_RESOLUTION = }"
+            + f"Got {target_resolution = }"
         )
 
-    target_grid = get_target_grid(resolution=target_resolution)
+    target_grid = get_target_grid(resolution=target_resolution)  # type: ignore (int,float,list)
     method_string = (
         "upscaling by counting pixels above threshold and do "
         + "a latitude weighted average"
@@ -250,7 +295,7 @@ def get_final_land_mask():
     result = convolve_mask(
         land_mask,
         target_grid=target_grid,
-        verbose=False,
+        verbose=verbose,
         attrs={"units": "1"},
     )
     result = result.astype(np.float32)
@@ -263,8 +308,15 @@ def get_final_land_mask():
 
 def main() -> NoneType:
     """Generate the land mask."""
-    land_mask = get_final_land_mask()
-    land_mask.to_netcdf(OUT_FILE)
+    args = parser.parse_args()
+    with open(args.config, "r") as io:
+        config = yaml.safe_load(io)
+    land_config = config.get("land_mask", {})
+
+    land_mask = get_final_land_mask(config=land_config, verbose=args.verbose)
+    out_file = Path(land_config["out_file"])
+    out_file.parent.mkdir(parents=True, exist_ok=True)
+    land_mask.to_netcdf(out_file)
     return None
 
 

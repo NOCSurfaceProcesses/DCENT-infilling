@@ -284,9 +284,9 @@ wheels = [
 ]
 
 [[package]]
-name = "dcent-gridding"
+name = "dcent-infilling"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "cf-xarray" },
     { name = "glomar-gridding" },

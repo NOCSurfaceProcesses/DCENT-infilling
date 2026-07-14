@@ -2,27 +2,60 @@
 
 """Adjust 1x1 sea-ice concentration to 5x5."""
 
+import argparse
+from datetime import datetime
 from pathlib import Path
 from types import NoneType
 from warnings import warn
+import yaml
 
 import cf_xarray  # noqa: F401
 import numpy as np
 import xarray as xr
 
-from .utils import convolution_wgts, get_coordnames, process_da, get_time_coordname
+from dcent_infilling.utils import (
+    convolution_wgts,
+    get_coordnames,
+    process_da,
+    get_time_coordname,
+)
 
-BASE_PATH: Path = Path("/path/to/HadISST2")
-IN_FILE: Path = BASE_PATH / "HadISST.2.2.2.0_sea_ice_concentration.nc"
-TERRAIN_FILE: Path = BASE_PATH / "land_lowres_kernel_esa_hybrid.nc"
 
-OUT_FILE: Path = BASE_PATH / "HadISST2_5x5_1850_2025_replic.nc"
+config_help = """Configuration YAML file to use. With 'reduce_ice_mask' section
+with:
+- ice_concentration_file : path to the (extended) HadISST.2.2.2.0 sea ice
+  concentration file.
+- terrain_file : path to the land mask file - at the target resolution for the
+  ice concentration.
+- output_file : path for the output file.
+- var_name : Name of the sea-ice concentration variable in the input dataset
+  (defaults to "sic").
+- start_year : start year of the output sea ice concentration file (defaults to
+  1850). Note, if the input file starts after this then the start date will
+  reflect the input file.
+- end_year : end year of the output sea ice concentration file (defaults to
+  current year). Note, if the input file ends before this then the end date will
+  reflect the input file.
+"""
 
-# WARNING: This will print a lot of data!
-VERBOSE = False
 
-START_YEAR: int = 1850
-END_YEAR: int = 2025
+parser = argparse.ArgumentParser(description="Generate a combined land-lake-sea mask")
+parser.add_argument(
+    "-c",
+    "--config",
+    dest="config",
+    required=True,
+    type=str,
+    help=config_help,
+)
+parser.add_argument(
+    "-v",
+    "--verbose",
+    dest="verbose",
+    required=False,
+    action="store_true",
+    help="Print more debugging output",
+)
 
 
 def sea_ice_frac_computer(
@@ -94,7 +127,22 @@ def sea_ice_frac_computer(
 
 
 def main() -> NoneType:  # noqa: D103
-    sic = xr.load_dataset(IN_FILE)["sic"]
+    args = parser.parse_args()
+    with open(args.config, "r") as io:
+        config = yaml.safe_load(io)
+    ice_config = config.get("reduce_ice_mask", {})
+
+    verbose = args.verbose
+
+    in_file = Path(ice_config["ice_concentration_file"])
+    terrain_file = Path(ice_config["terrain_file"])
+    out_file = Path(ice_config["output_file"])
+    var_name = ice_config.get("var_name", "sic")
+
+    start_year = ice_config.get("start_year", 1850)
+    end_year = ice_config.get("end_year", datetime.now().year)
+
+    sic = xr.load_dataset(in_file)[var_name]
     time_name = get_time_coordname(sic)
     lat_name, lon_name = get_coordnames(sic, raise_if_missing=True)
 
@@ -104,13 +152,13 @@ def main() -> NoneType:  # noqa: D103
 
     sic = sic.sortby(lat_name).sortby(lon_name)
 
-    if VERBOSE:
+    if verbose:
         print(f"{sic.coords = }")
 
     years = sic.coords[time_name].dt.year
-    sic = sic.sel({time_name: ((START_YEAR <= years) & (years <= END_YEAR))})
+    sic = sic.sel({time_name: ((start_year <= years) & (years <= end_year))})
 
-    terrain = xr.open_dataset(TERRAIN_FILE)
+    terrain = xr.open_dataset(terrain_file)
     out_coords = xr.Coordinates(
         coords={
             time_name: sic.cf["time"].values,
@@ -126,13 +174,14 @@ def main() -> NoneType:  # noqa: D103
         np.nan,
         (sic >= threshold),
     )
-    sic_15_5x5_ar = sea_ice_frac_computer(sic_ge_threshold, verbose=VERBOSE)
+    sic_15_5x5_ar = sea_ice_frac_computer(sic_ge_threshold, verbose=verbose)
     out_da.values = sic_15_5x5_ar
 
-    if VERBOSE:
-        print(f"Writing to {OUT_FILE}")
+    if verbose:
+        print(f"Writing to {out_file}")
 
-    out_da.to_netcdf(OUT_FILE)
+    out_file.parent.mkdir(parents=True, exist_ok=True)
+    out_da.to_netcdf(out_file)
 
     return None
 
