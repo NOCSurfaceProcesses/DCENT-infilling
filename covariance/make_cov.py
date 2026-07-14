@@ -123,7 +123,6 @@ def summarise_cov(spatial_cov: EllipseCovarianceBuilder) -> dict:
         "eigvals": eigvals,
     }
     return summary
-    # return (det, small_eigv, smallest_eigv, large_eigv, largest_eigv, trace)
 
 
 def adjust_positive_def(
@@ -184,7 +183,7 @@ def main():  # noqa: D103
     outfile_180_template = config["io"]["cov_180_file"]
     outfile_360_template = config["io"]["cov_360_file"]
 
-    ellipse = EllipseModel(**config["model_params"])
+    ellipse = EllipseModel(**config.get("model_params", {}))
     v = ellipse.v
 
     cov_params = config.get("cov", {})

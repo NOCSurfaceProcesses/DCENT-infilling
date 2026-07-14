@@ -4,6 +4,7 @@ import argparse
 import yaml
 
 from pathlib import Path
+from math import tau
 
 import numpy as np
 import xarray as xr
@@ -21,6 +22,27 @@ parser.add_argument(
 )
 
 
+def default_fill_value(
+    config: dict,
+    variable: str = "sst",
+) -> tuple[float, float, float]:
+    """Get the default fill values."""
+    use_hadcrut_defaults = config.get("HadCRUT_defaults", False)
+
+    if not use_hadcrut_defaults:
+        return (
+            config.get("L_fill_value", -999.9),
+            config.get("theta_fill_value", -999.9),
+            config.get("stdev_fill_value", -999.9),
+        )
+    elif variable == "sst":
+        return np.sqrt(2) * 1300.0, 0.0, 0.6
+    elif variable == "lsat":
+        return np.sqrt(2) * 1300.0, 0.0, 1.2
+    else:
+        raise ValueError("Could not set default values")
+
+
 def main():  # noqa: D103
     args = parser.parse_args()
     with open(args.config, "r") as io:
@@ -28,8 +50,8 @@ def main():  # noqa: D103
 
     variable = config.get("variable", "sst")
 
-    inpath = Path(config["io"]["base_path"])
-    infile = inpath / config["io"]["train_file"]
+    out_path = Path(config["io"]["base_path"])
+    infile = Path(config["io"]["train_file"])
 
     varname = config["io"]["train_var"]
     da = xr.load_dataset(infile)[varname]
@@ -39,7 +61,7 @@ def main():  # noqa: D103
 
     outfile_template = config["io"]["ellipse_file"]
     for month in range(1, 13):
-        outfile = inpath / outfile_template.format(month=month)
+        outfile = out_path / outfile_template.format(month=month)
         print(f"{outfile = }")
 
         da_mini = da.sel(time=(da.time.dt.month == month))
@@ -63,24 +85,13 @@ def main():  # noqa: D103
         if not np.all(mask_check):
             raise ValueError("Mask check fail")
 
-        ellipse = EllipseModel(**config["model_params"])
+        ellipse = EllipseModel(**config.get("model_params", {}))
         ellipse_builder = EllipseBuilder(training_arr, coords)
         fit_config = config.get("fit_params", {})
-        use_hadcrut_defaults = fit_config.get("HadCRUT5_defaults", False)
-        if not use_hadcrut_defaults:
-            fill_val_L = -999.9
-            fill_val_theta = -999.9
-            fill_val_stdev = -999.9
-        elif variable == "sst":
-            fill_val_L = np.sqrt(2) * 1300.0
-            fill_val_theta = 0.0
-            fill_val_stdev = 0.6
-        elif variable == "lsat":
-            fill_val_L = np.sqrt(2) * 1300.0
-            fill_val_theta = 0.0
-            fill_val_stdev = 1.2
-        else:
-            raise ValueError("Could not set default values")
+
+        fill_val_L, fill_val_theta, fill_val_stdev = default_fill_value(
+            fit_config, variable
+        )
 
         default_values = [
             fill_val_L,  # lx
@@ -105,7 +116,10 @@ def main():  # noqa: D103
                 fit_config.get("Ly_lower_bound", 300.0),
                 fit_config.get("Ly_upper_bound", 300.0),
             ),
-            (-2.0 * np.pi, 2.0 * np.pi),
+            (
+                fit_config.get("theta_lower_bound", -tau),
+                fit_config.get("theta_upper_bound", tau),
+            ),
         ]
         fit_max_distance = fit_config.get("fit_max_distance", 10_000.0)
         ellipse_params = ellipse_builder.compute_params(
@@ -122,7 +136,7 @@ def main():  # noqa: D103
                 + "of parameters: "
                 + f"Expected: {len(default_values)}, got: {len(list_of_vars)}."
             )
-        if not use_hadcrut_defaults:
+        if not fit_config.get("HadCRUT_defaults", False):
             for varname, default_value in zip(list_of_vars, default_values):
                 ellipse_params[varname] = ellipse_params[varname].where(
                     ellipse_params[varname] != default_value
