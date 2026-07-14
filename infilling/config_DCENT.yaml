@@ -32,3 +32,4 @@ output:
 
 setup:
   log_file: "/path/to/lsat_2025-06.log"
+  log_level: "INFO" # DEBUG, INFO, WARN, ERROR, CRITICAL

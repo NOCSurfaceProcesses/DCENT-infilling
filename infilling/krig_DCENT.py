@@ -355,7 +355,8 @@ def main():  # noqa: C901, D103
     config["summary"]["xarray"] = xr.__version__
 
     log_file: str | None = get_recurse(config, "setup", "log_file", default=None)
-    init_logging(log_file)
+    log_level: str = get_recurse(config, "setup", "log_level", default="INFO")
+    init_logging(log_file, level=log_level.upper())
 
     logging.info("Loaded configuration")
 
