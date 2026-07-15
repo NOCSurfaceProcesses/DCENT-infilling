@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 Regrid higher resolution land terrain to lower resolution.
 

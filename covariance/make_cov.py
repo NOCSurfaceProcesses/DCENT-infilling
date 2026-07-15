@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """Make the temperature covariance from the ellipses."""
 
 import argparse

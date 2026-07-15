@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 """
 Script to convert DCENT error covariance table file to covariance matrices and
 output to netCDF. This applies for the SST error covariances.

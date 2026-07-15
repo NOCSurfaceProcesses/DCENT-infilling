@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """Get SST ellipse parameters."""
 
 import argparse

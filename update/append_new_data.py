@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 """Append new data."""
 
 import argparse

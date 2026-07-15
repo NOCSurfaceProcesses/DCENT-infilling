@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 """
 Artificially extend HadISST2 by repeating monthly images from the last year of data.
 
