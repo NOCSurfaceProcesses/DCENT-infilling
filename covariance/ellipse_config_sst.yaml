@@ -9,9 +9,9 @@ io:
   # Paths for outputs
   # Below are used to produce the original DCENT analysis
   base_path: "/path/to/Covariances/SST"
-  ellipse_file: "matern_physical_distances_v_eq_1p5/sst_{mm:02}.nc"
-  cov_180_file: "locally_build_covariances/covariance_{mm:02}_v_eq_1p5_sst_clipped_-180_180.nc"
-  cov_360_file: "locally_build_covariances/covariance_{mm:02}_v_eq_1p5_sst_clipped_0_360.nc"
+  ellipse_file: "matern_physical_distances_v_eq_1p5/sst_{month:02}.nc"
+  cov_180_file: "locally_build_covariances/covariance_{month:02}_v_eq_1p5_sst_clipped_-180_180.nc"
+  cov_360_file: "locally_build_covariances/covariance_{month:02}_v_eq_1p5_sst_clipped_0_360.nc"
 
 fit_params:
   init_value_Lx: 2000.0 # Default: 2000
