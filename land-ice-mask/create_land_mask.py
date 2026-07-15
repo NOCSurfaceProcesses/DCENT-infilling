@@ -316,7 +316,7 @@ def main() -> NoneType:
     land_config = config.get("land_mask", {})
 
     land_mask = get_final_land_mask(config=land_config, verbose=args.verbose)
-    out_file = Path(land_config["out_file"])
+    out_file = Path(land_config["output_file"])
     out_file.parent.mkdir(parents=True, exist_ok=True)
     land_mask.to_netcdf(out_file)
     return None
