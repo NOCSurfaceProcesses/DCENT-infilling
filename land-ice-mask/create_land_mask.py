@@ -85,21 +85,22 @@ def standarise_array_coords(
 ) -> xr.DataArray:
     """Make xarray dataarray."""
     lat_name, lon_name = get_coordnames(da)
-    lat_resolution_actual = da.coords[lat_name][1] - da.coords[lat_name][0]
-    lat_resolution = abs(lat_resolution_actual)
-    lon_resolution = abs(da.coords[lon_name][1] - da.coords[lon_name][0])
+    da_lats = da.coords[lat_name].values.flatten().astype(float)
+    da_lons = da.coords[lon_name].values.flatten().astype(float)
+
+    lat_resolution_actual = da_lats[1] - da_lats[0]
+    lat_resolution = round(abs(lat_resolution_actual), 3)
+    lon_resolution = round(abs(da_lons[1] - da_lons[0]), 3)
 
     lats = np.arange(
         -90.0 + lat_resolution / 2,
         90.0,
         lat_resolution,
-        dtype=np.float32,
     )
     lons = np.arange(
         -180 + lon_resolution / 2,
         180.0,
         lon_resolution,
-        dtype=np.float32,
     )
 
     if lat_resolution_actual < 0:
@@ -300,7 +301,6 @@ def get_final_land_mask(
         verbose=verbose,
         attrs={"units": "1"},
     )
-    result = result.astype(np.float32)
 
     result_ds = result.to_dataset()
     result_ds = result_ds.cf.add_bounds(["latitude", "longitude"])
