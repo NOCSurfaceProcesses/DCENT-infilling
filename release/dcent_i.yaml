@@ -15,7 +15,7 @@ general:
   Conventions: "CF-1.7"
 
 variable:
-  name: tas
+  name: ts
   old_name: "combined_perturbed"
   attributes:
     units: "C"

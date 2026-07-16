@@ -1,0 +1,7 @@
+in_path: "/path/to/error_covariance/Uncertainty_reso_5_{year}_{month:02d}.nc"
+out_path: "/path/to/sst_err_corr_matrix/Error_Cov_Mat_5_{year}_{month:02d}.nc"
+
+start_year: 1850
+end_year: 2025
+
+overwrite: false

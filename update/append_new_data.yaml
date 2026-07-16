@@ -1,0 +1,22 @@
+filename_pattern: "DCENT_I_1.1.0.0_*.nc"
+
+base:
+  lsat: "/path/to/DCENT_I_v1_1_lsat"
+  sst: "/path/to/DCENT_I_v1_1_sst"
+  tas: "/path/to/DCENT_I_v1_1_tas"
+  ts: "/path/to/DCENT_I_v1_1_ts"
+  super: "/path/to/DCENT_I_v1_1_super"
+
+update:
+  lsat: "/path/to/DCENT_I_v1_1_update_lsat"
+  sst: "/path/to/DCENT_I_v1_1_update_sst"
+  tas: "/path/to/DCENT_I_v1_1_update_tas"
+  ts: "/path/to/DCENT_I_v1_1_update_ts"
+  super: "/path/to/DCENT_I_v1_1_update_super"
+
+out:
+  lsat: "/path/to/DCENT_I_v1_1_updated_lsat"
+  sst: "/path/to/DCENT_I_v1_1_updated_sst"
+  tas: "/path/to/DCENT_I_v1_1_updated_tas"
+  ts: "/path/to/DCENT_I_v1_1_updated_ts"
+  super: "/path/to/DCENT_I_v1_1_updated_super"
