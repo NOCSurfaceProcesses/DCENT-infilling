@@ -3,6 +3,7 @@
 """Make the temperature covariance from the ellipses."""
 
 import argparse
+from datetime import datetime
 from typing import Literal
 import yaml
 
@@ -90,22 +91,22 @@ def generate_output_ds(coords: xr.Coordinates) -> xr.Dataset:
     out_coords["index_1"].attrs = {
         "units": "1",
     }
-    out_coords["lat_1"].attrs = {
+    out_coords["latitude_1"].attrs = {
         "long_name": "latitude_1",
         "units": "degrees_north",
     }
-    out_coords["lon_1"].attrs = {
+    out_coords["longitude_1"].attrs = {
         "long_name": "longitude_1",
         "units": "degrees_north",
     }
     out_coords["index_2"].attrs = {
         "units": "1",
     }
-    out_coords["lat_2"].attrs = {
+    out_coords["latitude_2"].attrs = {
         "long_name": "latitude_2",
         "units": "degrees_north",
     }
-    out_coords["lon_2"].attrs = {
+    out_coords["longitude_2"].attrs = {
         "long_name": "longitude_2",
         "units": "degrees_north",
     }
@@ -209,6 +210,9 @@ def main():  # noqa: D103
         print(f"{month = }")
         print(f"{parmfile = }")
         print(f"{outfile = }")
+        outdir = outfile.parent
+        if not outdir.isdir():
+            outdir.mkdir(parents=True, exist_ok=True)
 
         # Create covariance
         parm_ds = xr.open_dataset(parmfile)
@@ -228,6 +232,7 @@ def main():  # noqa: D103
         elif variable == "lsat":
             Lx = resolve_kergulen(Lx, Ly, month=month, max_allowed=max_allowed_lx)
 
+        start_time = datetime.now()
         spatial_cov = EllipseCovarianceBuilder(
             np.ma.masked_where(mask, Lx),
             np.ma.masked_where(mask, Ly),
@@ -268,16 +273,18 @@ def main():  # noqa: D103
             if k == "eigvals":
                 continue
             print(f"Final: {k} = {v}")
+        end_time = datetime.now()
+        print(f"Month {month} took {end_time - start_time}")
 
         # Create correlation matrix
         spatial_cov.calculate_cor()
 
-        out_ds["cov"] = (
+        out_ds["covariance"] = (
             ["index_1", "index_2"],
             spatial_cov.cov_ns,
             {"long_name": "covariance", "units": "K**2"},
         )
-        out_ds["cor"] = (
+        out_ds["correlation"] = (
             ["index_1", "index_2"],
             spatial_cov.cor_ns,
             {"long_name": "correlation", "units": "1"},
@@ -311,9 +318,11 @@ def main():  # noqa: D103
         outfile_360 = basepath / outfile_360_template.format(month=month)
         print(f"{outfile_360 = }")
         out_ds_360 = out_ds.copy()
-        out_ds_360.coords["lon_1"] = out_ds_360.coords["lon_1"] % 360
-        out_ds_360.coords["lon_2"] = out_ds_360.coords["lon_2"] % 360
-        out_ds_360 = out_ds_360.sortby(["lat_1", "lon_1"]).sortby(["lat_2", "lon_2"])
+        out_ds_360.coords["longitude_1"] = out_ds_360.coords["longitude_1"] % 360
+        out_ds_360.coords["longitude_2"] = out_ds_360.coords["longitude_2"] % 360
+        out_ds_360 = out_ds_360.sortby(["latitude_1", "longitude_1"]).sortby(
+            ["latitude_2", "longitude_2"]
+        )
         out_ds_360.coords["index_1"] = np.arange(spatial_cov.cov_ns.shape[0])
         out_ds_360.coords["index_2"] = np.arange(spatial_cov.cov_ns.shape[0])
 
