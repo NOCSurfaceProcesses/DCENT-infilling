@@ -20,6 +20,7 @@ that can be converted to a DataFrame. There is an associated attr
 import argparse
 from functools import partial
 import os
+from pathlib import Path
 
 from itertools import product
 
@@ -80,7 +81,11 @@ def main() -> None:  # noqa: D103
     end_year = config.get("end_year", 2025)
 
     in_path = config["in_path"]
+    if not Path(in_path).parent.is_dir():
+        raise FileNotFoundError("Input path cannot be found (parent is not a dir)")
     out_path = config["out_path"]
+    # Make sure the output directory exists
+    Path(out_path).parent.mkdir(exist_ok=True, parents=True)
 
     grid, lat_df, lon_df = _create_grid()
     n = int(np.prod(grid.shape))
