@@ -1,7 +1,10 @@
+# Paths with place-holders (following python format-string spec) for year and month
+# Examples below will use 2005, 3 to replace year with 2005, and month:02d with 03
 in_path: "/path/to/error_covariance/Uncertainty_reso_5_{year}_{month:02d}.nc"
 out_path: "/path/to/sst_err_corr_matrix/Error_Cov_Mat_5_{year}_{month:02d}.nc"
 
 start_year: 1850
 end_year: 2025
 
+# Overwrite if the output file already exists
 overwrite: false
