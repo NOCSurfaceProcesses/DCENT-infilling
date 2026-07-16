@@ -30,3 +30,4 @@ reduce_ice_mask:
   var_name: "sic"
   start_year: 1850
   end_year: 2025
+  threshold: 0.15

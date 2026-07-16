@@ -167,7 +167,7 @@ def main() -> NoneType:  # noqa: D103
         }
     )
     out_da = xr.DataArray(name="land sea-ice mask", coords=out_coords)
-    threshold = 0.15
+    threshold = ice_config.get("threshold", 0.15)
 
     sic_ge_threshold = xr.where(
         np.isnan(sic),
