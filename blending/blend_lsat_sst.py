@@ -28,7 +28,9 @@ def prep_variable(
     return (
         pl.from_pandas(load_dataset(path, member=member).to_dataframe().reset_index())
         .filter(pl.col("time").dt.year().is_between(*YEAR_RANGE, closed="both"))
-        .with_columns(pl.col("time").dt.replace(day=15, hour=12).name.keep())
+        .with_columns(
+            pl.col("time").dt.replace(day=15, hour=12).dt.truncate("1h").name.keep()
+        )
         .rename(
             {"epsilon": f"{variable}_epsilon", "n_obs": f"{variable}_n_obs"},
             strict=False,
@@ -119,7 +121,9 @@ def main() -> None:  # noqa: D103
         )
         .rename({"latitude": "lat", "longitude": "lon"})
         .filter(pl.col("time").dt.year().is_between(*YEAR_RANGE, closed="both"))
-        .with_columns(pl.col("time").dt.replace(day=15, hour=12).name.keep())
+        .with_columns(
+            pl.col("time").dt.replace(day=15, hour=12).dt.truncate("1h").name.keep()
+        )
         .select([*coords, weights_var_name])
         .unique()
     )
