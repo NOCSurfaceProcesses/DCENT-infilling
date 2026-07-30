@@ -501,7 +501,7 @@ def main():  # noqa: C901, D103
                 print(f"Skipping {month = }")
                 continue
 
-            np.random.seed(_set_seed(member, month))
+            _set_seed(member, month)
             interp_covariance = interp_covariances[month - 1]
             print(f"{interp_covariance = }")
             logging.info("Loaded ellipse interpolation covariance")
